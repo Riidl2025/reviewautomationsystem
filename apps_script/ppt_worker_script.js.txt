@@ -1,0 +1,54 @@
+function onFormSubmit(e) {
+  if (!e) return;
+
+  const SUPABASE_URL = "https://wdwccbframjvnuepfgac.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indkd2NjYmZyYW1qdm51ZXBmZ2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMzcwOTAsImV4cCI6MjA4NDcxMzA5MH0.xY86UJM-Udw298r1zsQBJRV2un4xLQnP30z1CFp2zXA";
+
+  const sheet = e.range.getSheet();
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0];
+
+  const values = sheet
+    .getRange(e.range.getRow(), 1, 1, headers.length)
+    .getValues()[0];
+
+  let payload = {};
+
+  headers.forEach((header, i) => {
+    let key = header.toLowerCase().replace(/\s+/g, "");
+
+    if (key === "ppt") {
+      let link = values[i];
+
+      // 1️⃣ Extract file ID
+      let fileId = link.match(/[-\w]{25,}/)[0];
+
+      // 2️⃣ AUTO-SET PERMISSION (CRITICAL)
+      let file = DriveApp.getFileById(fileId);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+      // 3️⃣ Convert to direct download link
+      payload["ppt"] =
+        "https://drive.google.com/uc?export=download&id=" + fileId;
+    } else {
+      payload[key] = values[i];
+    }
+  });
+
+  payload["screened"] = "no";
+
+  const options = {
+    method: "post",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    payload: JSON.stringify(payload)
+  };
+
+  const url = `${SUPABASE_URL}/rest/v1/form_responses`;
+  UrlFetchApp.fetch(url, options);
+}

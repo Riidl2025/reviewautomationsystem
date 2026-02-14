@@ -1,0 +1,204 @@
+PROJECT CONTEXT FILE
+Startup Screening & Meeting Automation System
+
+Author: Chaitanya Sathe
+Purpose: Internship Project
+
+---
+
+1. PROJECT GOAL
+
+Automate startup application screening and scheduling.
+
+Full workflow:
+
+Startup submits application →
+System evaluates PPT →
+Decision generated →
+Email sent →
+Founder books slot →
+Meeting created automatically in Google Calendar with Meet link.
+
+---
+
+2. CURRENT ARCHITECTURE
+
+INPUT SOURCE (Current Testing)
+
+* Google Form + Apps Script
+* Data stored in Supabase (form_responses table)
+
+Future Plan:
+
+* Replace with AWS DynamoDB as primary source.
+
+---
+
+3. WORKER PIPELINE
+
+ppt_worker.py:
+
+Steps:
+
+1. Fetch unscreened rows
+2. Download PPT
+3. Convert PPT → PDF
+4. Extract text
+5. Send to OpenAI scorer
+6. Compute total score + decision
+7. Store result in screening_results
+8. Send email with booking link
+9. Mark screened=yes
+
+Error handling:
+
+* Failed rows marked as "failed"
+* Processing continues to next row
+
+---
+
+4. EMAIL AUTOMATION
+
+Emails include:
+
+* Decision result
+* Booking link
+* Personalized company name
+
+Issue found earlier:
+
+* Incorrect booking links due to wrong BOOKING_LINK_BASE
+* Fixed by ensuring base URL only, not full query string
+
+---
+
+5. BOOKING SYSTEM
+
+Flask booking_server.py:
+
+Features:
+
+* Fetch available slots
+* Display UI
+* Save booking
+* Lock slot
+* Create calendar event
+* Send invites
+
+Important logic:
+
+* Double booking prevention
+* Slot locking in database
+
+---
+
+6. GOOGLE CALENDAR INTEGRATION
+
+calendar_helper.py:
+
+Creates:
+
+* Event
+* Meet link
+* Attendees list
+
+Requirements:
+
+* Founder must receive invite
+* Team emails must receive invite
+* Correct company name must appear in event title
+
+Security improvement planned:
+
+* Move attendee emails to environment variables
+
+---
+
+7. DATABASE TABLES
+
+form_responses
+
+* id
+* companyname
+* email
+* ppt
+* screened
+
+screening_results
+
+* startup_id
+* scores_json
+* decision
+* reasoning
+* email_sent
+
+meeting_slots
+
+* slot_time
+* is_booked
+
+meeting_bookings
+
+* companyname
+* email
+* slot_time
+
+---
+
+8. MAJOR ISSUES ENCOUNTERED
+
+Apps Script:
+
+* Occasional trigger failures
+* Column mismatch errors
+* Risk of losing submissions
+
+Booking System:
+
+* UI rendering issues when slots empty
+* Wrong booking links generated
+* Startup_id missing in some flows
+
+Calendar:
+
+* Company name sometimes incorrect
+* Founder not receiving invite in early tests
+
+Environment:
+
+* Secrets initially hardcoded
+* Migrated to .env
+
+---
+
+9. RELIABILITY CONCERNS IDENTIFIED
+
+Risk points:
+
+* Apps Script trigger failures
+* Database write failures
+* Email sending failures
+* Calendar API failures
+
+Plan:
+
+* Add retry logic
+* Improve logging
+* Move toward AWS pipeline
+
+---
+
+10. NEXT DEVELOPMENT PHASE
+
+Planned improvements:
+
+1. Redesign ingestion pipeline
+2. Integrate AWS DynamoDB
+3. Improve scoring JSON stability
+4. Harden booking flow
+5. Central config file
+6. Better logging & monitoring
+
+---
+
+END OF CONTEXT FILE
